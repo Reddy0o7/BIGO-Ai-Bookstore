@@ -1,0 +1,45 @@
+FaceRecognizer.detectFace(frame)
+  Input: image   Output: cropped face image, or none
+  boxes = yoloModel.predict(frame)            // YOLO face detector
+  IF boxes is empty: RETURN none
+  box = the box with the highest score
+  RETURN frame cropped to box, resized to 160x160
+
+FaceRecognizer.identify(faceCrop)
+  Input: face crop   Output: (userID, confidence)
+  probs = faceClassifier.predict(faceCrop)    // one probability per registered user
+  best = index of the largest value in probs
+  RETURN (label of best, probs[best])
+
+FaceRecognizer.train(userID, faceImgs)
+  Input: userID, face crops   Output: none (model updated)
+  save faceImgs into folder faces/<userID>/
+  retrain faceClassifier on all folders in faces/ (one class per folder)
+  save the model file
+
+VoiceRecognizer.extractFeatures(clip)
+  Input: audio clip   Output: feature vector
+  trim silence from clip
+  IF clip is now empty: RETURN none
+  mfcc = compute MFCC features of clip
+  RETURN average of mfcc over time
+
+VoiceRecognizer.identify(clip)
+  Input: audio clip   Output: (userID, confidence)
+  f = extractFeatures(clip)
+  IF f is none: RETURN (none, 0)
+  probs = audioClassifier.predict(f)
+  best = index of the largest value in probs
+  RETURN (label of best, probs[best])
+
+VoiceRecognizer.train(userID, clips)
+  Input: userID, voice clips   Output: none (model updated)
+  save clips into folder voices/<userID>/
+  retrain audioClassifier on extractFeatures() of every saved clip, labelled by folder
+  save the model file
+
+EmotionDetector.detectEmotion(faceCrop)
+  Input: face crop   Output: one of happy, sad, angry, surprised, neutral
+  (label, conf) = emotionModel.predict(faceCrop)
+  IF conf < 0.6: RETURN "neutral"          // not sure, so no mood change
+  RETURN label
