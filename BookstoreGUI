@@ -1,0 +1,33 @@
+showHomePage()
+  Input: none (uses currentUser, currentEmotion)   Output: home screen drawn
+  books = Recommender.getTop3(currentUser, currentEmotion)
+  IF currentEmotion is not none AND not "neutral": show greeting naming the mood
+  show the 3 books (cover, title, author, price, rating)
+  show search bar and chat box
+  IF currentUser is a Visitor: show "Log in" and "Register" buttons
+
+showLoginScreen()
+  Input: none   Output: login/register screen drawn
+  show camera preview, "Log in with face", "Log in with voice", register form
+  ON "Log in with face": (user, emotion) = AuthManager.loginByFace(camera.capture())
+  ON "Log in with voice": user = AuthManager.loginByVoice(mic.record(3 seconds)); emotion = none
+  IF user is not null: currentUser = user; currentEmotion = emotion; showHomePage()
+  ELSE show the error message returned
+
+showBookPage(bookID)
+  Input: bookID   Output: book page drawn
+  book = Catalog.getBook(bookID)
+  book.recordView(); IF currentUser is logged in: add (userID, bookID, "view") to history.txt
+  show book info, weighted rating = RatingManager.weightedAverage(bookID), comments
+  IF currentUser is RC or VC: show "Buy" button and the VIP price if VC
+  show rating stars and comment box
+
+showChatBox()
+  Input: none   Output: chat panel drawn
+  ON "Send": IF question is empty: RETURN
+             reply = ChatBot.answer(question, currentUser); add question and reply to the chat panel
+
+showAdminPanel()
+  Input: none   Output: admin screen drawn (SU only)
+  IF currentUser.userType != SU: show "Access denied"; RETURN
+  show Add Book form, taboo-word list, suspended accounts, SuperUser.viewFinanceReport()
