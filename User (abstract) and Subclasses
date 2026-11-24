@@ -1,0 +1,54 @@
+User.browse(filter)
+  Input: filter (category, author, yearFrom, yearTo)   Output: list of Book
+  RETURN Catalog.browse(filter.category, filter.author, (filter.yearFrom, filter.yearTo))
+
+User.search(keywords, image)
+  Input: keywords (text, may be empty), image (may be none)   Output: list of Book
+  IF keywords is empty AND image is none: RETURN error "Type a keyword or upload a picture"
+  results = empty list
+  IF keywords not empty: results = Catalog.searchByKeyword(keywords)
+  IF image is not none: add Catalog.searchByImage(image) to results, skipping duplicates
+  RETURN results
+
+User.rateBook(bookID, stars, comment)
+  Input: bookID, stars (1-5), comment   Output: "saved" or "blocked"
+  RETURN RatingManager.submitRating(this, bookID, stars, comment)
+
+User.askChat(question)
+  Input: question   Output: answer text
+  RETURN ChatBot.answer(question, this)
+
+Visitor.register(username, samples)
+  Input: username, samples (face images and/or voice clips)   Output: new RegisteredCustomer or error
+  RETURN AuthManager.registerUser(username, samples.faceImgs, samples.voiceClips)
+
+RegisteredCustomer.purchase(bookID)
+  Input: bookID   Output: "success" or "rejected"
+  RETURN AccountManager.processPurchase(this, Catalog.getBook(bookID))
+
+RegisteredCustomer.deposit(amount)
+  Input: amount   Output: new balance or error
+  RETURN AccountManager.deposit(this, amount)
+
+RegisteredCustomer.getDiscount()      Output: 0.0
+  RETURN 0.0
+
+VIPCustomer.getDiscount()             Output: 0.10
+  RETURN 0.10
+
+SuperUser.addBook(bookInfo)
+  Input: bookInfo (title, author, category, pubDate, price, description, cover)   Output: new bookID or error
+  RETURN Catalog.addBook(bookInfo)
+
+SuperUser.editTabooList(word, action)
+  Input: word, action ("add" or "remove")   Output: updated list or error
+  IF action == "add": RETURN TabooFilter.addWord(word)
+  ELSE: RETURN TabooFilter.removeWord(word)
+
+SuperUser.reopenAccount(userID, deposit)
+  Input: userID, deposit amount   Output: "reopened" or error
+  RETURN AccountManager.reopen(userID, deposit)
+
+SuperUser.viewFinanceReport()
+  Input: none   Output: report
+  RETURN AccountManager.financeReport()
