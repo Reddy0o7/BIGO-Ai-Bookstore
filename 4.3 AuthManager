@@ -1,0 +1,35 @@
+registerUser(username, faceImgs, voiceClips)
+  Input: username, list of face images, list of voice clips   Output: new RegisteredCustomer or error
+  users = DataStore.load("users.txt")
+  IF username already in users: RETURN error "Please choose another username"
+  IF faceImgs is empty AND voiceClips is empty: RETURN error "Record face or voice samples"
+  IF faceImgs not empty:
+      crops = [FaceRecognizer.detectFace(img) FOR img IN faceImgs], dropping images with no face
+      IF crops is empty: RETURN error "Samples not clear, please record again"
+      FaceRecognizer.train(username, crops)
+  IF voiceClips not empty: VoiceRecognizer.train(username, voiceClips)
+  new = RegisteredCustomer(userID = username, balance = 0, warnings = 0, status = active,
+                           purchaseCount = 0, totalPaid = 0)
+  add new to users; DataStore.save("users.txt", users)
+  RETURN new
+
+loginByFace(frame)
+  Input: camera frame   Output: (user, emotion) or error
+  crop = FaceRecognizer.detectFace(frame)
+  IF crop is none: RETURN error "No face found, try again"
+  (userID, conf) = FaceRecognizer.identify(crop)
+  IF conf < confidenceThreshold: RETURN error "Login failed, try again"
+  user = find userID in DataStore.load("users.txt")
+  ask "Is this you, <name>?"; IF answer is No: RETURN error "Login cancelled"
+  IF user.status == suspended: RETURN error "Account suspended. Please contact the super-user"
+  emotion = EmotionDetector.detectEmotion(crop)       // creative feature, crop is not saved
+  RETURN (user, emotion)
+
+loginByVoice(clip)
+  Input: audio clip   Output: user or error
+  (userID, conf) = VoiceRecognizer.identify(clip)
+  IF conf < confidenceThreshold: RETURN error "Login failed, try again"
+  user = find userID in DataStore.load("users.txt")
+  ask "Is this you, <name>?"; IF answer is No: RETURN error "Login cancelled"
+  IF user.status == suspended: RETURN error "Account suspended. Please contact the super-user"
+  RETURN user
