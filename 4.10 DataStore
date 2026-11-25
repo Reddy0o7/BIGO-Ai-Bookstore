@@ -1,0 +1,13 @@
+load(file)
+  Input: file name   Output: list of records
+  IF file does not exist: create it with only the header line; RETURN empty list
+  header = first line split by "|"
+  records = empty list
+  FOR each other line: add dictionary(header -> values split by "|") to records
+  RETURN records
+
+save(file, records)
+  Input: file name, list of records   Output: none
+  write header and every record (values joined by "|") to file + ".tmp"
+  rename file + ".tmp" to file          // so a crash never leaves half a file
+
