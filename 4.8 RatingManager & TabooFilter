@@ -1,0 +1,56 @@
+RatingManager.submitRating(user, bookID, stars, comment)
+  Input: user, bookID, stars, comment   Output: "saved" or "blocked"
+  IF stars is not 1, 2, 3, 4 or 5: RETURN error "Please choose 1 to 5 stars"
+  n = TabooFilter.countTaboo(comment)
+  IF n > 3:
+      IF user is not a Visitor: AccountManager.addWarning(user)
+      RETURN "blocked: too many taboo words"
+  clean = TabooFilter.mask(comment)
+  bought = (user, bookID, "purchase") is in history.txt
+  save Rating(new ratingID, user.userID or "visitor", bookID, stars, clean, bought, today)
+  updateOrderLists(bookID)
+  RETURN "saved"
+
+RatingManager.weightedAverage(bookID)
+  Input: bookID   Output: average rating (0 if no ratings)
+  r = ratings WHERE bookID matches
+  IF r is empty: RETURN 0
+  total = 0; weights = 0
+  FOR each rating x in r:
+      w = 2 IF x.isPurchaser ELSE 1
+      total = total + w * x.stars; weights = weights + w
+  RETURN total / weights
+
+RatingManager.updateOrderLists(bookID)
+  Input: bookID   Output: none
+  IF number of ratings for bookID <= 3: RETURN
+  avg = weightedAverage(bookID)
+  remove bookID from both lists
+  IF avg < 2: add bookID to noOrderList
+  IF avg > 4: add bookID to toOrderList
+  DataStore.save("lists.txt", toOrderList and noOrderList)
+
+TabooFilter.countTaboo(comment)
+  Input: comment   Output: number of taboo words
+  words = comment split into words, lower case, punctuation removed
+  RETURN number of words that are in tabooWords
+
+TabooFilter.mask(comment)
+  Input: comment   Output: comment with taboo words hidden
+  FOR each word in comment:
+      IF lower case of word is in tabooWords: replace word with "*" repeated len(word) times
+  RETURN the new comment
+
+TabooFilter.addWord(w)
+  Input: word   Output: updated list or error
+  w = lower case of w, spaces trimmed
+  IF w is empty: RETURN
+  IF w is in tabooWords: RETURN error "Already on the list"
+  add w to tabooWords; DataStore.save("taboo.txt", tabooWords)
+  RETURN tabooWords
+
+TabooFilter.removeWord(w)
+  Input: word   Output: updated list or error
+  IF w is not in tabooWords: RETURN error "Not on the list"
+  remove w from tabooWords; DataStore.save("taboo.txt", tabooWords)
+  RETURN tabooWords
