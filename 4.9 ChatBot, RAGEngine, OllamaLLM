@@ -1,0 +1,50 @@
+ChatBot.answer(question, user)
+  Input: question, user   Output: labelled answer text
+  IF question is empty: RETURN nothing
+  topic = guess topic from keywords (store info, books, my account, recommendations, finance)
+  IF NOT isAllowed(topic, user.userType):
+      RETURN "That information isn't available for your account type."
+  IF topic == "finance":                       // only SU gets here
+      report = AccountManager.financeReport()
+      RETURN labelSource(OllamaLLM.generate(question, report), "RAG")
+  IF topic == "my account": context = the user's own row from users.txt and their transactions
+  ELSE IF RAGEngine.isRelated(question): context = RAGEngine.retrieve(question)
+  ELSE: context = none
+  reply = OllamaLLM.generate(question, context)
+  IF reply is an error: RETURN "The chat assistant is not available right now."
+  IF context is none: RETURN labelSource(reply, "LLM")
+  RETURN labelSource(reply, "RAG")
+
+ChatBot.isAllowed(topic, userType)
+  Input: topic, userType   Output: true / false
+  VS: store info, books
+  RC: store info, books, my account
+  VC: store info, books, my account, recommendations
+  SU: everything, including finance
+  RETURN topic is in the list for userType
+
+ChatBot.labelSource(answer, source)
+  Input: answer, source ("RAG" or "LLM")   Output: answer with label
+  IF source == "RAG": RETURN answer + " (Answered via RAG from local files)"
+  RETURN answer + " (Answered by the LLM)"
+
+RAGEngine.isRelated(question)
+  Input: question   Output: true / false
+  chunks = retrieve(question)
+  RETURN chunks is not empty
+
+RAGEngine.retrieve(question)
+  Input: question   Output: list of matching text chunks
+  FOR each document d in rag/ folder that the current user's accessLevel allows:
+      split d into paragraphs
+      FOR each paragraph p: p.score = number of question words (not "the", "is", ...) found in p
+  RETURN the 3 paragraphs with the highest score, only those with score >= 2
+
+OllamaLLM.generate(prompt, context)
+  Input: prompt, context (may be none)   Output: answer text or error
+  IF context is not none:
+      prompt = "Answer using only this information:\n" + context + "\nQuestion: " + prompt
+  send prompt to the local Ollama server (http://localhost:11434) with modelName
+  IF no response within 60 seconds: RETURN error
+  RETURN the response text
+
