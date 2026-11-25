@@ -1,0 +1,30 @@
+getTop3(user, emotion)
+  Input: user, emotion (may be none)   Output: list of 3 Book
+  IF user.userType is RC or VC: books = personalTop3(user)
+  ELSE: books = popularTop3()
+  IF emotion is not none AND emotion != "neutral": books = applyMood(books, emotion)
+  RETURN books
+
+personalTop3(user)
+  Input: user   Output: list of 3 Book
+  history = records in DataStore.load("history.txt") WHERE userID == user.userID
+  IF history is empty: RETURN popularTop3()
+  seen = books in history; owned = books in history with action "purchase"
+  FOR each book b in Catalog NOT in owned:
+      b.score = 0
+      FOR each s in seen:
+          IF b.category == s.category: b.score += 2
+          IF b.author == s.author: b.score += 3
+  RETURN the 3 books with the highest score (fill with popularTop3() if fewer than 3)
+
+popularTop3()
+  Input: none   Output: list of 3 Book
+  FOR each book b in Catalog: b.score = b.purchaseCount + b.viewCount
+  RETURN the 3 books with the highest score
+
+applyMood(books, emotion)
+  Input: current top books, emotion   Output: list of 3 Book
+  genres = moodToGenre[emotion]     // sad->uplifting, happy->adventure, angry->calm/light, surprised->mystery
+  matches = books in Catalog whose category or description fits genres, not owned by the user
+  sort matches by how close they are to the user's history (same author/category first)
+  RETURN first 3 of (matches + books), skipping duplicates
