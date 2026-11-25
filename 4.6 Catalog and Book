@@ -1,0 +1,57 @@
+Catalog.browse(category, author, time)
+  Input: category, author ("Any" = no filter), time = (yearFrom, yearTo)   Output: list of Book
+  IF yearFrom and yearTo given AND yearFrom > yearTo: RETURN error "Please enter a valid year range"
+  books = DataStore.load("books.txt")
+  result = empty list
+  FOR each b in books:
+      IF category != "Any" AND b.category != category: skip
+      IF author != "Any" AND b.author != author: skip
+      IF yearFrom given AND year of b.pubDate < yearFrom: skip
+      IF yearTo given AND year of b.pubDate > yearTo: skip
+      add b to result
+  IF result is empty: RETURN message "No books found"
+  RETURN result
+
+Catalog.searchByKeyword(words)
+  Input: text of keywords   Output: ranked list of Book
+  keywords = words split by spaces, lower case
+  FOR each b in books:
+      text = lower case of (b.title + b.author + b.category + b.description)
+      b.score = number of keywords found in text
+  result = books with score > 0, sorted by score (highest first)
+  IF result is empty: RETURN message "No matching books found"
+  RETURN result
+
+Catalog.searchByImage(image)
+  Input: image file   Output: ranked list of Book
+  IF image is not JPG or PNG: RETURN error "Please upload a JPG or PNG image"
+  q = embedding of image (pretrained image model)
+  FOR each b in books:
+      b.score = highest similarity between q and the embeddings of b.coverImage and b.figureImages
+  result = books with score >= 0.7, sorted by score (highest first)
+  IF result is empty: RETURN message "No matching books found"
+  RETURN result
+
+Catalog.addBook(book)
+  Input: title, author, category, pubDate, price, description, cover, figures   Output: new bookID or error
+  IF any of title, author, category, pubDate, price is empty: RETURN error naming the field
+  IF price is not a number OR price <= 0: RETURN error "Price must be a positive number"
+  IF a book with the same title and author exists: RETURN error "This book is already in the store"
+  book.bookID = "B" + (number of books + 1); book.purchaseCount = 0; book.viewCount = 0
+  copy cover and figure images into books/<bookID>/; store their image embeddings for searchByImage
+  add book to books; DataStore.save("books.txt", books)
+  RETURN book.bookID
+
+Catalog.getBook(bookID)
+  Input: bookID   Output: Book or none
+  RETURN the book in books whose bookID matches, or none
+
+Book.recordView()
+  Input: none   Output: none
+  viewCount = viewCount + 1
+  DataStore.save("books.txt", all books)
+
+Book.recordPurchase()
+  Input: none   Output: none
+  purchaseCount = purchaseCount + 1
+  DataStore.save("books.txt", all books)
