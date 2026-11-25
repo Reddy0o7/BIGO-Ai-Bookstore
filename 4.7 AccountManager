@@ -1,0 +1,79 @@
+processPurchase(customer, book)
+  Input: customer (RC or VC), book   Output: "success" or "rejected"
+  IF customer is a Visitor: RETURN error "Please log in or register to buy books"
+  price = book.price * (1 - customer.getDiscount())        // VC pays 90%
+  IF price > customer.balance:
+      applyFine(customer)
+      RETURN "rejected: not enough money, $1 fine charged"
+  customer.balance = customer.balance - price
+  customer.purchaseCount = customer.purchaseCount + 1
+  customer.totalPaid = customer.totalPaid + price
+  book.recordPurchase()
+  save Transaction(new transID, customer.userID, book.bookID, "purchase", price, today)
+  add (customer.userID, book.bookID, "purchase") to history.txt
+  checkPromotion(customer)
+  DataStore.save("users.txt", users)
+  RETURN "success"
+
+deposit(customer, amount)
+  Input: customer, amount   Output: new balance or error
+  IF amount is not a number OR amount <= 0: RETURN error "Please enter a positive amount"
+  customer.balance = customer.balance + amount
+  save Transaction(new transID, customer.userID, none, "deposit", amount, today)
+  DataStore.save("users.txt", users)
+  RETURN customer.balance
+
+applyFine(customer)
+  Input: customer   Output: none
+  customer.balance = customer.balance - 1.00
+  save Transaction(new transID, customer.userID, none, "fine", 1.00, today)
+  IF customer.balance < 0: suspend(customer)
+  DataStore.save("users.txt", users)
+
+addWarning(customer)
+  Input: customer (RC or VC)   Output: none
+  customer.warnings = customer.warnings + 1
+  IF customer.warnings > 2:
+      IF customer.userType == VC: demote(customer)
+      ELSE: suspend(customer)
+  DataStore.save("users.txt", users)
+
+checkPromotion(customer)
+  Input: customer   Output: none
+  IF customer.userType == RC AND (customer.purchaseCount > 3 OR customer.totalPaid > 200):
+      customer.userType = VC
+      show "Congratulations, you are now a VIP customer (10% off every purchase)"
+
+suspend(customer)
+  Input: customer   Output: none
+  customer.status = suspended
+  IF customer is the current user: log them out
+
+demote(vip)
+  Input: VIP customer   Output: none
+  vip.userType = RC
+  vip.warnings = 0
+
+reopen(userID, amount)
+  Input: userID, deposit amount   Output: "reopened" or error
+  user = find userID in users
+  IF user.status != suspended: RETURN error "This account is already active"
+  user.balance = user.balance + amount
+  save Transaction(new transID, userID, none, "deposit", amount, today)
+  IF user.balance <= 0:
+      DataStore.save("users.txt", users)
+      RETURN error "Balance must be positive to reopen"
+  user.status = active; user.userType = RC; user.warnings = 0     // Phase I assumption
+  DataStore.save("users.txt", users)
+  RETURN "reopened"
+
+financeReport()
+  Input: none (SU only)   Output: report
+  t = DataStore.load("transactions.txt")
+  revenue  = sum of amount WHERE type == "purchase"
+  fines    = sum of amount WHERE type == "fine"
+  deposits = sum of amount WHERE type == "deposit"
+  balances = sum of balance over all customers in users.txt
+  lists    = DataStore.load("lists.txt")
+  suspended = users WHERE status == suspended
+  RETURN revenue, fines, deposits, balances, sales per book, to-order list, no-order list, suspended
